@@ -88,5 +88,5 @@ stats <- stats |>
   rename("readability" = `readability.Flesch.Kincaid`) |>
   select(-`readability.document`)
 
-paste(stats)
+stats
 
