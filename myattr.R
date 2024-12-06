@@ -1,3 +1,9 @@
+#PUT YOUR DOCUMENTS IN THE DOCS FOLDER
+#PUT YOUR DOCUMENTS IN THE DOCS FOLDER
+#PUT YOUR DOCUMENTS IN THE DOCS FOLDER
+#PUT YOUR DOCUMENTS IN THE DOCS FOLDER
+#PUT YOUR DOCUMENTS IN THE DOCS FOLDER
+
 library(pdftools)
 library(stringr)
 library(hunspell)
@@ -10,14 +16,33 @@ is_acronym <- function(word) {
   return(grepl("^[A-Z]+$", word))
 }
 
-analyze_pdf <- function(filename){
+analyze_pdf <- function(){
   
+  
+  files <- list.files("./docs", full.names = TRUE)
+  
+  page_number <- 0
+  words <- character(0)
+  # Loop through each file
+  for (filename in files) {
+    pdf_text <- pdf_text(filename)
+    page_number <- page_number + length(pdf_text)
+    text <- paste(pdf_text, collapse = " ")
+    text_clean <- gsub("[[:punct:]]", "", text)
+    text_clean <- gsub("[[:digit:]]", "", text_clean)
+    words_file <- strsplit(text_clean, "\\s+")[[1]]
+    words <- c(words, words_file)
+  }
+  
+  
+  
+  # pdf_text <- pdf_text("nbarules2021.pdf")
   #parse pdf and put into one big thing
-  pdf_text <- pdf_text(filename)
-  text <- paste(pdf_text, collapse = " ")
-  text_clean <- gsub("[[:punct:]]", "", text)
-  text_clean <- gsub("[[:digit:]]", "", text_clean)
-  words <- strsplit(text_clean, "\\s+")[[1]]
+  # pdf_text <- pdf_text(filename)
+  # text <- paste(pdf_text, collapse = " ")
+  # text_clean <- gsub("[[:punct:]]", "", text)
+  # text_clean <- gsub("[[:digit:]]", "", text_clean)
+  # words <- strsplit(text_clean, "\\s+")[[1]]
   word_lengths <- nchar(words)
   
   #get average word length
@@ -27,9 +52,6 @@ analyze_pdf <- function(filename){
   total_tokens <- length(words)
   unique_types <- length(unique(words))
   ttr <- unique_types / total_tokens
-  
-  #get number of pages
-  page_number <- length(pdf_text)
   
   #get reading scores
   readability_scores <- textstat_readability(text, measure = "Flesch.Kincaid")
@@ -48,7 +70,6 @@ analyze_pdf <- function(filename){
   prop_acronym <- length(acronyms)/length(words)
   
   result <- data.frame(
-    filename = filename,
     pages = page_number,
     ttr = ttr,
     readability = readability_scores,
@@ -59,37 +80,13 @@ analyze_pdf <- function(filename){
   
   return(result)
 }
-#doc_set <- c("nbafinancial.pdf","nbaschedule.pdf","nbarules2023.pdf","nbarules2022.pdf","nbarules2021.pdf","nbabargaining.pdf")
-#scikit_docs <- c("welcome.pdf","tutorial.pdf","guide.pdf","glossary.pdf","ex.pdf","API.pdf")
 
-
-#=======================================================================================================================
-#UNCOMMENT THE BELOW LINE AND ADD YOUR FILENAME(S)
-#doc_set <- c("your.pdf", "docs.pdf")
-
-stats <- analyze_pdf(doc_set[1])
-
-if(length(doc_set) >1){
-  for(i in 2:length(doc_set)){
-    tmp <- analyze_pdf(doc_set[i])
-    stats <- rbind(stats, tmp)
-  }
-}
+#================================================================
+stats <- analyze_pdf()
 
 stats <- stats |>
   rename("readability" = `readability.Flesch.Kincaid`) |>
   select(-`readability.document`)
 
-df <- stats |> select(-filename)
-max_values <- apply(df, 2, max)
-mean_values <- apply(df, 2, mean)
-
-rm(tmp, df)
-
-summary_df <- data.frame(
-  rbind(max_values, mean_values)
-)
-
-stats
-summary_df
+paste(stats)
 
