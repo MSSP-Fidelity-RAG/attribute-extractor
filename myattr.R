@@ -20,6 +20,8 @@ analyze_pdf <- function(){
   
   
   files <- list.files("./docs", full.names = TRUE)
+  string_to_remove <- "./docs/aaa.txt"
+  files <- files[files != string_to_remove]
   
   page_number <- 0
   words <- character(0)
