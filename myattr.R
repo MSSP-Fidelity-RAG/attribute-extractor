@@ -1,3 +1,8 @@
+#you must pull the repository from GitHub, or else you have to set up the file system yourself with the "docs" folder with aaa.txt in it 
+#put all of your files into the docs folder then just click run
+#the two dataframes created will contain all the stats you need to fill into the google sheet
+#make sure you install all necessary packages
+
 library(pdftools)
 library(stringr)
 library(hunspell)
