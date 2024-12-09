@@ -25,15 +25,34 @@ analyze_pdf <- function(){
   
   page_number <- 0
   words <- character(0)
+  
+  #initialize vectors for maxs
+  page_number_max <- numeric(5)
+  ttr_max <- numeric(5)
+  readability_max <- numeric(5)
+  special_char_max <- numeric(5)
+  acronym_max <- numeric(5)
+  
   # Loop through each file
   for (filename in files) {
+    i<-1
     pdf_text <- pdf_text(filename)
     page_number <- page_number + length(pdf_text)
     text <- paste(pdf_text, collapse = " ")
     text_clean <- gsub("[[:punct:]]", "", text)
     text_clean <- gsub("[[:digit:]]", "", text_clean)
-    words_file <- strsplit(text_clean, "\\s+")[[1]]
+    words_file <- strsplit(text_clean, "\\s+")
+    
+    #get attributes per file
+    page_number_max[i] <- length(words_file)
+    ttr_max[i] <- length(unique(words_file))/length(words_file)
+    readability <- textstat_readability(text, measure = "Flesch.Kincaid")
+    
+    
+    
+    
     words <- c(words, words_file)
+    i<-i+1
   }
   
   
@@ -46,9 +65,6 @@ analyze_pdf <- function(){
   # text_clean <- gsub("[[:digit:]]", "", text_clean)
   # words <- strsplit(text_clean, "\\s+")[[1]]
   word_lengths <- nchar(words)
-  
-  #get average word length
-  average_word_length <- mean(word_lengths, na.rm = TRUE)
   
   #get ttr
   total_tokens <- length(words)
@@ -65,9 +81,10 @@ analyze_pdf <- function(){
   ratio_special_to_regular <- num_special_characters / num_regular_characters
 
   #find number of acronyms
-  acronyms <- words[sapply(words, is_acronym)]
+  acronyms <- sapply(words, is_acronym)
   acronyms <- acronyms[nchar(acronyms) > 1]
   is_english_word <- hunspell_check(acronyms)
+  acronyms_char <- as.character(acronyms)
   acronyms <- acronyms[!is_english_word]
   prop_acronym <- length(acronyms)/length(words)
   
@@ -75,7 +92,6 @@ analyze_pdf <- function(){
     pages = page_number,
     ttr = ttr,
     readability = readability_scores,
-    avg_word_length = average_word_length,
     prop_special_char = ratio_special_to_regular,
     prop_acronym = prop_acronym
   )
