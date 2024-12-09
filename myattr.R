@@ -1,8 +1,8 @@
-#PUT YOUR DOCUMENTS IN THE DOCS FOLDER
-#PUT YOUR DOCUMENTS IN THE DOCS FOLDER
-#PUT YOUR DOCUMENTS IN THE DOCS FOLDER
-#PUT YOUR DOCUMENTS IN THE DOCS FOLDER
-#PUT YOUR DOCUMENTS IN THE DOCS FOLDER
+#PUT YOUR DOCUMENTS IN THE DOCS FOLDER AND LEAVE AAA.TXT IN THERE
+#PUT YOUR DOCUMENTS IN THE DOCS FOLDER AND LEAVE AAA.TXT IN THERE
+#PUT YOUR DOCUMENTS IN THE DOCS FOLDER AND LEAVE AAA.TXT IN THERE
+#PUT YOUR DOCUMENTS IN THE DOCS FOLDER AND LEAVE AAA.TXT IN THERE
+#PUT YOUR DOCUMENTS IN THE DOCS FOLDER AND LEAVE AAA.TXT IN THERE
 
 library(pdftools)
 library(stringr)
@@ -27,45 +27,57 @@ analyze_pdf <- function(){
   words <- character(0)
   
   #initialize vectors for maxs
-  page_number_max <- numeric(5)
-  ttr_max <- numeric(5)
-  readability_max <- numeric(5)
-  special_char_max <- numeric(5)
-  acronym_max <- numeric(5)
-  
+  page_number_max <- numeric(100)
+  ttr_max <- numeric(100)
+  readability_max <- numeric(100)
+  special_char_max <- numeric(100)
+  acronym_max <- numeric(100)
+  i<-1
   # Loop through each file
   for (filename in files) {
-    i<-1
     pdf_text <- pdf_text(filename)
     page_number <- page_number + length(pdf_text)
     text <- paste(pdf_text, collapse = " ")
     text_clean <- gsub("[[:punct:]]", "", text)
     text_clean <- gsub("[[:digit:]]", "", text_clean)
     words_file <- strsplit(text_clean, "\\s+")
-    
+    words_file <- unlist(words_file)
+    print("hello")
     #get attributes per file
-    page_number_max[i] <- length(words_file)
+    page_number_max[i] <- length(pdf_text)
     ttr_max[i] <- length(unique(words_file))/length(words_file)
-    readability <- textstat_readability(text, measure = "Flesch.Kincaid")
+    readability_result <- textstat_readability(text, measure = "Flesch.Kincaid")
+    readability_max[i] <- unlist(readability_result$`Flesch.Kincaid`)
     
+    #get acronym prop 
+    acronyms <- words_file[sapply(words_file, is_acronym)]
+    acronyms <- acronyms[nchar(acronyms) > 1]
+    is_english_word <- hunspell_check(acronyms) 
+    acronyms <- acronyms[!is_english_word] 
+    length(acronyms)
+    prop_acronym <- length(acronyms)/length(words_file)
+    acronym_max[i] <- prop_acronym
     
-    
+    #get special character
+    special_characters <- gsub("[[:alnum:][:space:]]", "", text)
+    num_special_characters <- nchar(special_characters)
+    num_regular_characters <- nchar(gsub("[^[:alnum:]]", "", text))
+    ratio_special_to_regular <- num_special_characters / num_regular_characters
+    special_char_max[i] <- ratio_special_to_regular
     
     words <- c(words, words_file)
     i<-i+1
   }
   
+  maxes <- data.frame(
+    pages = max(page_number_max),
+    ttr = max(ttr_max),
+    readability <- max(readability_max),
+    special_chars <- max(special_char_max),
+    acronym <- max(acronym_max)
+  )
   
-  
-  # pdf_text <- pdf_text("nbarules2021.pdf")
-  #parse pdf and put into one big thing
-  # pdf_text <- pdf_text(filename)
-  # text <- paste(pdf_text, collapse = " ")
-  # text_clean <- gsub("[[:punct:]]", "", text)
-  # text_clean <- gsub("[[:digit:]]", "", text_clean)
-  # words <- strsplit(text_clean, "\\s+")[[1]]
   word_lengths <- nchar(words)
-  
   #get ttr
   total_tokens <- length(words)
   unique_types <- length(unique(words))
@@ -80,12 +92,11 @@ analyze_pdf <- function(){
   num_regular_characters <- nchar(gsub("[^[:alnum:]]", "", text))
   ratio_special_to_regular <- num_special_characters / num_regular_characters
 
-  #find number of acronyms
-  acronyms <- sapply(words, is_acronym)
+  acronyms <- words[sapply(words, is_acronym)]
   acronyms <- acronyms[nchar(acronyms) > 1]
-  is_english_word <- hunspell_check(acronyms)
-  acronyms_char <- as.character(acronyms)
-  acronyms <- acronyms[!is_english_word]
+  is_english_word <- hunspell_check(acronyms) 
+  acronyms <- acronyms[!is_english_word] 
+  length(acronyms)
   prop_acronym <- length(acronyms)/length(words)
   
   result <- data.frame(
@@ -96,15 +107,18 @@ analyze_pdf <- function(){
     prop_acronym = prop_acronym
   )
   
-  return(result)
+  return(list(results = result, maxes = maxes))
 }
 
 #================================================================
-stats <- analyze_pdf()
+results <- analyze_pdf()
 
-stats <- stats |>
+doc_set_stats <- results$result
+maxes <- results$maxes
+
+doc_set_stats <- doc_set_stats |>
   rename("readability" = `readability.Flesch.Kincaid`) |>
   select(-`readability.document`)
 
-stats
-
+colnames(maxes) <- c("max_pages", "max_ttr", "max_readability", "max_special_chars_prop", "max_acronym_prop")
+rm(results)
