@@ -24,6 +24,7 @@ analyze_pdf <- function(){
   
   page_number <- 0
   words <- character(0)
+  text_total <- ""
   
   #initialize vectors for maxs
   page_number_max <- numeric(100)
@@ -37,17 +38,23 @@ analyze_pdf <- function(){
     pdf_text <- pdf_text(filename)
     page_number <- page_number + length(pdf_text)
     text <- paste(pdf_text, collapse = " ")
+    
+    combined_text <- paste(pdf_text, collapse = " ")  # Collapse pages into one string
+    text_total <- paste(text_total, combined_text, sep = " ")
+    
     text_clean <- gsub("[[:punct:]]", "", text)
     text_clean <- gsub("[[:digit:]]", "", text_clean)
     words_file <- strsplit(text_clean, "\\s+")
     words_file <- unlist(words_file)
-    print("hello")
+    
     #get attributes per file
     page_number_max[i] <- length(pdf_text)
     ttr_max[i] <- length(unique(words_file))/length(words_file)
     readability_result <- textstat_readability(text, measure = "Flesch.Kincaid")
     readability_max[i] <- unlist(readability_result$`Flesch.Kincaid`)
     
+    print(filename)
+    print(readability_max[i])
     #get acronym prop 
     acronyms <- words_file[sapply(words_file, is_acronym)]
     acronyms <- acronyms[nchar(acronyms) > 1]
@@ -67,6 +74,11 @@ analyze_pdf <- function(){
     words <- c(words, words_file)
     i<-i+1
   }
+  # print(page_number_max[1:10])
+  # print(ttr_max[1:10])
+   print(readability_max[1:10])
+  # print(acronym_max[1:10])
+  # print(special_char_max[1:10])
   
   maxes <- data.frame(
     pages = max(page_number_max),
@@ -83,12 +95,12 @@ analyze_pdf <- function(){
   ttr <- unique_types / total_tokens
   
   #get reading scores
-  readability_scores <- textstat_readability(text, measure = "Flesch.Kincaid")
-  
+  readability_scores <- textstat_readability(text_total, measure = "Flesch.Kincaid")
+  print(readability_scores)
   #find ratio of special characters to regular characters
-  special_characters <- gsub("[[:alnum:][:space:]]", "", text)
+  special_characters <- gsub("[[:alnum:][:space:]]", "", text_total)
   num_special_characters <- nchar(special_characters)
-  num_regular_characters <- nchar(gsub("[^[:alnum:]]", "", text))
+  num_regular_characters <- nchar(gsub("[^[:alnum:]]", "", text_total))
   ratio_special_to_regular <- num_special_characters / num_regular_characters
 
   acronyms <- words[sapply(words, is_acronym)]
